@@ -1,5 +1,7 @@
-import type { LinksFunction } from 'remix';
-import { Outlet, Link } from 'remix';
+import { User } from '@prisma/client';
+import { Link, LinksFunction, LoaderFunction, Outlet, useLoaderData } from 'remix';
+import { db } from '~/utils/db.sever';
+import { getUserId } from '~/utils/session.server';
 import stylesUrl from '../styles/jokes.css';
 
 export const links: LinksFunction = () => {
@@ -11,7 +13,27 @@ export const links: LinksFunction = () => {
   ];
 };
 
+type LoaderData = { jokes: { id: string; name: string }[]; user: User };
+
+export const loader: LoaderFunction = async ({ request }) => {
+  const userId = await getUserId(request);
+  const user = userId ? await db.user.findUnique({ where: { id: userId } }) : null;
+
+  const jokes = await db.joke.findMany({
+    select: { id: true, name: true },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+  });
+
+  return {
+    jokes,
+    user,
+  };
+};
+
 export default function JokesRoute() {
+  const data = useLoaderData<LoaderData>();
+
   return (
     <div className="jokes-layout">
       <header className="jokes-header">
@@ -22,6 +44,14 @@ export default function JokesRoute() {
               <span className="logo-medium">J🤪KES</span>
             </Link>
           </h1>
+          {data.user ? (
+            <div className="jokes-logout-container">
+              <p>Hi {data.user.username}</p>
+              <a href="/logout">Logout</a>
+            </div>
+          ) : (
+            <a href="/login">Login</a>
+          )}
         </div>
       </header>
       <main className="jokes-main">
@@ -30,11 +60,11 @@ export default function JokesRoute() {
             <Link to=".">Get a random joke</Link>
             <p>Here are a few more jokes to check out:</p>
             <ul>
-              <li>
-                <Link to="some-joke-id" prefetch="intent">
-                  Hippo
-                </Link>
-              </li>
+              {data.jokes.map((joke) => (
+                <li key={joke.id}>
+                  <Link to={joke.id}>{joke.name}</Link>
+                </li>
+              ))}
             </ul>
             <Link to="new" className="button">
               Add your own

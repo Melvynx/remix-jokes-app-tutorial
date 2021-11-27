@@ -70,6 +70,13 @@
   border-top: 1px solid var(--color-border);
 }
 
+.jokes-logout-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+
 @media print, (min-width: 640px) {
   .jokes-header .logo {
     display: none;
