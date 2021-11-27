@@ -90,3 +90,12 @@ export default function NewJokeRoute() {
     </div>
   );
 }
+
+export function ErrorBoundary({ error }: { error: Error }) {
+  return (
+    <div className="error-container">
+      <h2>Form error, reload the page and try again.</h2>
+      <pre>{error.message}</pre>
+    </div>
+  );
+}

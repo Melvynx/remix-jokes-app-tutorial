@@ -29,3 +29,12 @@ export default function Index() {
     </div>
   );
 }
+
+export function ErrorBoundary({ error }: { error: Error }) {
+  return (
+    <div className="error-container">
+      <h2>Jokes page error</h2>
+      <pre>{error.message}</pre>
+    </div>
+  );
+}

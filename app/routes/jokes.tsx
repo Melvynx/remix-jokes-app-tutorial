@@ -1,7 +1,7 @@
 import { User } from '@prisma/client';
 import { Link, LinksFunction, LoaderFunction, Outlet, useLoaderData } from 'remix';
 import { db } from '~/utils/db.sever';
-import { getUserId } from '~/utils/session.server';
+import { getUser, getUserId } from '~/utils/session.server';
 import stylesUrl from '../styles/jokes.css';
 
 export const links: LinksFunction = () => {
@@ -16,8 +16,7 @@ export const links: LinksFunction = () => {
 type LoaderData = { jokes: { id: string; name: string }[]; user: User };
 
 export const loader: LoaderFunction = async ({ request }) => {
-  const userId = await getUserId(request);
-  const user = userId ? await db.user.findUnique({ where: { id: userId } }) : null;
+  const user = await getUser(request);
 
   const jokes = await db.joke.findMany({
     select: { id: true, name: true },
@@ -45,12 +44,16 @@ export default function JokesRoute() {
             </Link>
           </h1>
           {data.user ? (
-            <div className="jokes-logout-container">
-              <p>Hi {data.user.username}</p>
-              <a href="/logout">Logout</a>
+            <div className="user-info">
+              <span>Hi {data.user.username}</span>
+              <form action="/logout" method="post">
+                <button type="submit" className="button">
+                  Logout
+                </button>
+              </form>
             </div>
           ) : (
-            <a href="/login">Login</a>
+            <Link to="/login">Login</Link>
           )}
         </div>
       </header>

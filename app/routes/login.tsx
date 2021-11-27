@@ -21,13 +21,15 @@ import stylesUrl from '../styles/login.css';
 const loginTypes = ['login', 'register'] as const;
 const boolSchema = z.enum(loginTypes);
 type LoginType = z.infer<typeof boolSchema>;
-type Data = ActionData<LoginForm & { loginType: LoginType }>;
+type Data = ActionData<LoginForm & { loginType?: LoginType }>;
 
 export let links: LinksFunction = () => {
   return [{ rel: 'stylesheet', href: stylesUrl }];
 };
 
-export const action: ActionFunction = async ({ request }) => {
+export const action: ActionFunction = async ({
+  request,
+}): Promise<Response | Data> => {
   const form = await request.formData();
   const [username, password, loginType] = [
     form.get('username'),
@@ -61,19 +63,28 @@ export const action: ActionFunction = async ({ request }) => {
     };
     let user = null;
     if (type === 'register') {
+      const userExists = await db.user.count({
+        where: { username: userSchema.data.username },
+      });
+      if (userExists) {
+        return {
+          fields: data,
+          formError: [`Username ${userSchema.data.username} already exists.`],
+        };
+      }
+
       user = await register(data);
     }
+
     if (type === 'login') {
       user = await login(data);
     }
-
-    console.log({ user });
     if (!user) {
-      return { formError: 'Invalid username or password' };
+      return { fields: data, formError: ['Invalid username or password'] };
     }
     return createUserSession(
       user.id,
-      (redirectTo.success && redirectTo.data) || '/'
+      (redirectTo.success && redirectTo.data) || '/jokes'
     );
   } else {
     const error = userSchema.error.flatten();
@@ -106,10 +117,7 @@ export default function Login() {
                   type="radio"
                   name="loginType"
                   value={type}
-                  defaultChecked={
-                    !actionData?.fields?.loginType ||
-                    actionData?.fields?.loginType === type
-                  }
+                  defaultChecked={type === 'login'}
                 />
                 {type.charAt(0).toUpperCase() + type.slice(1)}
               </label>
@@ -156,9 +164,9 @@ export default function Login() {
             ) : null}
           </div>
           <div id="form-error-message">
-            {actionData?.formError ? (
+            {actionData?.formError?.length ? (
               <p className="form-validation-error" role="alert">
-                {actionData?.formError}
+                {actionData?.formError.join(', ')}
               </p>
             ) : null}
           </div>
